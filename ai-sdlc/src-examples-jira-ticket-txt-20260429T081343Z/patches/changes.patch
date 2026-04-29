@@ -1,0 +1,802 @@
+diff --git a/src/dtos/notificationTemplate.dto.ts b/src/dtos/notificationTemplate.dto.ts
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/src/dtos/notificationTemplate.dto.ts
+@@ -0,0 +1,38 @@
++export type Channel = "email" | "sms" | "push";
++export type Status = "active" | "inactive";
++
++export interface NotificationTemplateDTO {
++  id: string;
++  name: string;
++  channel: Channel;
++  subject?: string;
++  body: string;
++  status: Status;
++  createdAt: string; // ISO string
++  updatedAt: string; // ISO string
++}
++
++export interface CreateNotificationTemplateDTO {
++  name: string;
++  channel: Channel;
++  subject?: string;
++  body: string;
++  status: Status;
++}
++
++export interface UpdateNotificationTemplateDTO {
++  name?: string;
++  channel?: Channel;
++  subject?: string;
++  body?: string;
++  status?: Status;
++}
++
+diff --git a/src/controllers/notificationTemplate.controller.ts b/src/controllers/notificationTemplate.controller.ts
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/src/controllers/notificationTemplate.controller.ts
+@@ -0,0 +1,52 @@
++import { Request, Response } from "express";
++import { NotificationTemplateService } from "../services/notificationTemplate.service";
++import {
++  CreateNotificationTemplateDTO,
++  UpdateNotificationTemplateDTO,
++} from "../dtos/notificationTemplate.dto";
++
++export class NotificationTemplateController {
++  constructor(private service: NotificationTemplateService) {}
++
++  async list(req: Request, res: Response) {
++    try {
++      const templates = await this.service.listAll();
++      res.status(200).json(templates);
++    } catch (err) {
++      res.status(500).json({ error: "Internal server error" });
++    }
++  }
++
++  async create(req: Request, res: Response) {
++    const dto: CreateNotificationTemplateDTO = req.body;
++    try {
++      const created = await this.service.create(dto);
++      res.status(201).json(created);
++    } catch (err: any) {
++      if (err.message.startsWith("ValidationError")) {
++        res.status(400).json({ error: err.message });
++      } else {
++        res.status(500).json({ error: "Internal server error" });
++      }
++    }
++  }
++
++  async update(req: Request, res: Response) {
++    const id = req.params.id;
++    const dto: UpdateNotificationTemplateDTO = req.body;
++    try {
++      const updated = await this.service.update(id, dto);
++      res.status(200).json(updated);
++    } catch (err: any) {
++      if (err.message === "NotFound") {
++        res.status(404).json({ error: "Template not found" });
++      } else if (err.message.startsWith("ValidationError")) {
++        res.status(400).json({ error: err.message });
++      } else {
++        res.status(500).json({ error: "Internal server error" });
++      }
++    }
++  }
++
++  async deactivate(req: Request, res: Response) {
++    const id = req.params.id;
++    try {
++      const updated = await this.service.deactivate(id);
++      res.status(200).json(updated);
++    } catch (err: any) {
++      if (err.message === "NotFound") {
++        res.status(404).json({ error: "Template not found" });
++      } else {
++        res.status(500).json({ error: "Internal server error" });
++      }
++    }
++  }
++}
++
+diff --git a/src/services/notificationTemplate.service.ts b/src/services/notificationTemplate.service.ts
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/src/services/notificationTemplate.service.ts
+@@ -0,0 +1,74 @@
++import { NotificationTemplateRepository } from "../repositories/notificationTemplate.repository";
++import {
++  CreateNotificationTemplateDTO,
++  UpdateNotificationTemplateDTO,
++  NotificationTemplateDTO,
++  Channel,
++  Status,
++} from "../dtos/notificationTemplate.dto";
++
++export class NotificationTemplateService {
++  constructor(private repo: NotificationTemplateRepository) {}
++
++  async listAll(): Promise<NotificationTemplateDTO[]> {
++    return this.repo.findAll();
++  }
++
++  async create(dto: CreateNotificationTemplateDTO): Promise<NotificationTemplateDTO> {
++    this.validateCreate(dto);
++    const entity = await this.repo.create(dto);
++    return entity;
++  }
++
++  async update(
++    id: string,
++    dto: UpdateNotificationTemplateDTO
++  ): Promise<NotificationTemplateDTO> {
++    const existing = await this.repo.findById(id);
++    if (!existing) throw new Error("NotFound");
++    this.validateUpdate(dto, existing);
++    const updated = await this.repo.update(id, dto);
++    return updated;
++  }
++
++  async deactivate(id: string): Promise<NotificationTemplateDTO> {
++    const existing = await this.repo.findById(id);
++    if (!existing) throw new Error("NotFound");
++    if (existing.status === "inactive") return existing; // idempotent
++    const updated = await this.repo.update(id, { status: "inactive" });
++    return updated;
++  }
++
++  private validateCreate(dto: CreateNotificationTemplateDTO) {
++    if (!dto.name || dto.name.trim() === "")
++      throw new Error("ValidationError: name required");
++    if (!dto.channel) throw new Error("ValidationError: channel required");
++    if (!dto.body || dto.body.trim() === "")
++      throw new Error("ValidationError: body required");
++    if (!dto.status) throw new Error("ValidationError: status required");
++    if (!["email", "sms", "push"].includes(dto.channel))
++      throw new Error("ValidationError: invalid channel");
++    if (!["active", "inactive"].includes(dto.status))
++      throw new Error("ValidationError: invalid status");
++    if (
++      dto.channel === "email" &&
++      (!dto.subject || dto.subject.trim() === "")
++    ) {
++      throw new Error("ValidationError: subject required for email channel");
++    }
++  }
++
++  private validateUpdate(
++    dto: UpdateNotificationTemplateDTO,
++    existing: NotificationTemplateDTO
++  ) {
++    if (dto.channel && !["email", "sms", "push"].includes(dto.channel))
++      throw new Error("ValidationError: invalid channel");
++    if (dto.status && !["active", "inactive"].includes(dto.status))
++      throw new Error("ValidationError: invalid status");
++    const channel = dto.channel ?? existing.channel;
++    const subject = dto.subject ?? existing.subject;
++    if (channel === "email" && (!subject || subject.trim() === "")) {
++      throw new Error("ValidationError: subject required for email channel");
++    }
++  }
++}
++
+diff --git a/src/repositories/notificationTemplate.repository.ts b/src/repositories/notificationTemplate.repository.ts
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/src/repositories/notificationTemplate.repository.ts
+@@ -0,0 +1,48 @@
++import {
++  NotificationTemplateDTO,
++  CreateNotificationTemplateDTO,
++  UpdateNotificationTemplateDTO,
++} from "../dtos/notificationTemplate.dto";
++
++// This is a stub repository. Replace with actual DB calls.
++export class NotificationTemplateRepository {
++  private templates: NotificationTemplateDTO[] = [];
++
++  async findAll(): Promise<NotificationTemplateDTO[]> {
++    // Return all templates
++    return this.templates;
++  }
++
++  async findById(id: string): Promise<NotificationTemplateDTO | null> {
++    const found = this.templates.find((t) => t.id === id);
++    return found ?? null;
++  }
++
++  async create(dto: CreateNotificationTemplateDTO): Promise<NotificationTemplateDTO> {
++    const now = new Date().toISOString();
++    const newTemplate: NotificationTemplateDTO = {
++      id: this.generateId(),
++      ...dto,
++      createdAt: now,
++      updatedAt: now,
++    };
++    this.templates.push(newTemplate);
++    return newTemplate;
++  }
++
++  async update(
++    id: string,
++    dto: UpdateNotificationTemplateDTO
++  ): Promise<NotificationTemplateDTO> {
++    const index = this.templates.findIndex((t) => t.id === id);
++    if (index === -1) throw new Error("NotFound");
++    const existing = this.templates[index];
++    const updated: NotificationTemplateDTO = {
++      ...existing,
++      ...dto,
++      updatedAt: new Date().toISOString(),
++    };
++    this.templates[index] = updated;
++    return updated;
++  }
++
++  private generateId(): string {
++    // Simple UUID v4 stub; replace with real UUID generator
++    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
++      const r = (Math.random() * 16) | 0,
++        v = c === "x" ? r : (r & 0x3) | 0x8;
++      return v.toString(16);
++    });
++  }
++}
++
+diff --git a/src/routes/notificationTemplate.routes.ts b/src/routes/notificationTemplate.routes.ts
+new file mode 100644
+index 0000000..5555555
+--- /dev/null
++++ b/src/routes/notificationTemplate.routes.ts
+@@ -0,0 +1,30 @@
++import express from "express";
++import { NotificationTemplateController } from "../controllers/notificationTemplate.controller";
++import { NotificationTemplateService } from "../services/notificationTemplate.service";
++import { NotificationTemplateRepository } from "../repositories/notificationTemplate.repository";
++
++const router = express.Router();
++
++const repo = new NotificationTemplateRepository();
++const service = new NotificationTemplateService(repo);
++const controller = new NotificationTemplateController(service);
++
++// Middleware for admin authorization assumed to be applied globally or here
++
++router.get("/notification-templates", (req, res) => controller.list(req, res));
++router.post("/notification-templates", (req, res) => controller.create(req, res));
++router.put("/notification-templates/:id", (req, res) => controller.update(req, res));
++router.patch("/notification-templates/:id/deactivate", (req, res) =>
++  controller.deactivate(req, res)
++);
++
++export default router;
++
+diff --git a/src/types.ts b/src/types.ts
+new file mode 100644
+index 0000000..6666666
+--- /dev/null
++++ b/src/types.ts
+@@ -0,0 +1,15 @@
++export type NotificationTemplate = {
++  id: string;
++  name: string;
++  channel: "email" | "sms" | "push";
++  subject?: string;
++  body: string;
++  status: "active" | "inactive";
++};
++
++export type NotificationTemplateFormData = Omit<NotificationTemplate, "id">;
++
+diff --git a/src/components/NotificationTemplatesPage.tsx b/src/components/NotificationTemplatesPage.tsx
+new file mode 100644
+index 0000000..7777777
+--- /dev/null
++++ b/src/components/NotificationTemplatesPage.tsx
+@@ -0,0 +1,110 @@
++import React, { useEffect, useState } from "react";
++import { NotificationTemplate, NotificationTemplateFormData } from "../types";
++import { NotificationTemplatesList } from "./NotificationTemplatesList";
++import { NotificationTemplateForm } from "./NotificationTemplateForm";
++import { LoadingIndicator } from "./LoadingIndicator";
++import { ErrorMessage } from "./ErrorMessage";
++
++export function NotificationTemplatesPage() {
++  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
++  const [loading, setLoading] = useState<boolean>(true);
++  const [error, setError] = useState<string | null>(null);
++  const [editingTemplate, setEditingTemplate] = useState<NotificationTemplate | null>(null);
++  const [formOpen, setFormOpen] = useState(false);
++  const [formSubmitting, setFormSubmitting] = useState(false);
++  const [formError, setFormError] = useState<string | null>(null);
++
++  async function fetchTemplates() {
++    setLoading(true);
++    setError(null);
++    try {
++      const res = await fetch("/notification-templates");
++      if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
++      const data = (await res.json()) as NotificationTemplate[];
++      setTemplates(data);
++    } catch (e) {
++      setError(e instanceof Error ? e.message : "Unknown error");
++    } finally {
++      setLoading(false);
++    }
++  }
++
++  useEffect(() => {
++    fetchTemplates();
++  }, []);
++
++  function openCreateForm() {
++    setEditingTemplate(null);
++    setFormError(null);
++    setFormOpen(true);
++  }
++
++  function openEditForm(template: NotificationTemplate) {
++    setEditingTemplate(template);
++    setFormError(null);
++    setFormOpen(true);
++  }
++
++  function closeForm() {
++    setFormOpen(false);
++    setEditingTemplate(null);
++    setFormError(null);
++  }
++
++  async function handleFormSubmit(data: NotificationTemplateFormData) {
++    setFormSubmitting(true);
++    setFormError(null);
++    try {
++      const method = editingTemplate ? "PUT" : "POST";
++      const url = editingTemplate
++        ? `/notification-templates/${editingTemplate.id}`
++        : "/notification-templates";
++
++      const res = await fetch(url, {
++        method,
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify(data),
++      });
++
++      if (!res.ok) {
++        const errText = await res.text();
++        throw new Error(errText || "Failed to save template");
++      }
++
++      await fetchTemplates();
++      closeForm();
++    } catch (e) {
++      setFormError(e instanceof Error ? e.message : "Unknown error");
++    } finally {
++      setFormSubmitting(false);
++    }
++  }
++
++  async function handleDeactivate(template: NotificationTemplate) {
++    if (!window.confirm(`Deactivate template "${template.name}"?`)) return;
++    try {
++      const res = await fetch(`/notification-templates/${template.id}/deactivate`, {
++        method: "PATCH",
++      });
++      if (!res.ok) throw new Error(`Failed to deactivate: ${res.statusText}`);
++      await fetchTemplates();
++    } catch (e) {
++      alert(e instanceof Error ? e.message : "Unknown error");
++    }
++  }
++
++  return (
++    <main>
++      <h1>Notification Templates</h1>
++      <button onClick={openCreateForm}>Create Template</button>
++
++      {loading && <LoadingIndicator message="Loading templates..." />}
++      {error && <ErrorMessage message={error} />}
++      {!loading && !error && templates.length === 0 && (
++        <p>No notification templates found. Create one to get started.</p>
++      )}
++      {!loading && !error && templates.length > 0 && (
++        <NotificationTemplatesList
++          templates={templates}
++          onEdit={openEditForm}
++          onDeactivate={handleDeactivate}
++          loading={loading}
++          error={error}
++        />
++      )}
++
++      {formOpen && (
++        <NotificationTemplateForm
++          initialData={editingTemplate ?? undefined}
++          onSubmit={handleFormSubmit}
++          onCancel={closeForm}
++          submitting={formSubmitting}
++          error={formError}
++        />
++      )}
++    </main>
++  );
++}
++
+diff --git a/src/components/NotificationTemplatesList.tsx b/src/components/NotificationTemplatesList.tsx
+new file mode 100644
+index 0000000..8888888
+--- /dev/null
++++ b/src/components/NotificationTemplatesList.tsx
+@@ -0,0 +1,45 @@
++import React from "react";
++import { NotificationTemplate } from "../types";
++
++type Props = {
++  templates: NotificationTemplate[];
++  onEdit(template: NotificationTemplate): void;
++  onDeactivate(template: NotificationTemplate): void;
++  loading: boolean;
++  error: string | null;
++};
++
++export function NotificationTemplatesList({
++  templates,
++  onEdit,
++  onDeactivate,
++}: Props) {
++  return (
++    <table aria-label="Notification Templates List" role="grid">
++      <thead>
++        <tr>
++          <th>Name</th>
++          <th>Channel</th>
++          <th>Status</th>
++          <th>Subject</th>
++          <th>Actions</th>
++        </tr>
++      </thead>
++      <tbody>
++        {templates.map((t) => (
++          <tr key={t.id}>
++            <td>{t.name}</td>
++            <td>{t.channel}</td>
++            <td>{t.status}</td>
++            <td>{t.channel === "email" ? t.subject ?? "-" : "-"}</td>
++            <td>
++              <button onClick={() => onEdit(t)} aria-label={`Edit ${t.name}`}>
++                Edit
++              </button>
++              {t.status === "active" && (
++                <button
++                  onClick={() => onDeactivate(t)}
++                  aria-label={`Deactivate ${t.name}`}
++                >
++                  Deactivate
++                </button>
++              )}
++            </td>
++          </tr>
++        ))}
++      </tbody>
++    </table>
++  );
++}
++
+diff --git a/src/components/NotificationTemplateForm.tsx b/src/components/NotificationTemplateForm.tsx
+new file mode 100644
+index 0000000..9999999
+--- /dev/null
++++ b/src/components/NotificationTemplateForm.tsx
+@@ -0,0 +1,130 @@
++import React, { useState, useEffect } from "react";
++import { NotificationTemplateFormData, NotificationTemplate } from "../types";
++
++type Props = {
++  initialData?: NotificationTemplate;
++  onSubmit(data: NotificationTemplateFormData): Promise<void>;
++  onCancel(): void;
++  submitting: boolean;
++  error: string | null;
++};
++
++type ValidationErrors = Partial<Record<keyof NotificationTemplateFormData, string>>;
++
++export function NotificationTemplateForm({
++  initialData,
++  onSubmit,
++  onCancel,
++  submitting,
++  error,
++}: Props) {
++  const [formData, setFormData] = useState<NotificationTemplateFormData>({
++    name: "",
++    channel: "email",
++    subject: "",
++    body: "",
++    status: "active",
++    ...initialData,
++  });
++
++  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
++
++  useEffect(() => {
++    setFormData({
++      name: "",
++      channel: "email",
++      subject: "",
++      body: "",
++      status: "active",
++      ...initialData,
++    });
++    setValidationErrors({});
++  }, [initialData]);
++
++  function validate(data: NotificationTemplateFormData): ValidationErrors {
++    const errors: ValidationErrors = {};
++    if (!data.name.trim()) errors.name = "Name is required";
++    if (!data.channel) errors.channel = "Channel is required";
++    if (!data.body.trim()) errors.body = "Body is required";
++    if (!data.status) errors.status = "Status is required";
++    if (data.channel === "email" && !data.subject?.trim()) {
++      errors.subject = "Subject is required for email channel";
++    }
++    return errors;
++  }
++
++  function handleChange<K extends keyof NotificationTemplateFormData>(
++    key: K,
++    value: NotificationTemplateFormData[K]
++  ) {
++    setFormData((prev) => ({ ...prev, [key]: value }));
++    setValidationErrors((prev) => ({ ...prev, [key]: undefined }));
++  }
++
++  async function handleSubmit(e: React.FormEvent) {
++    e.preventDefault();
++    const errors = validate(formData);
++    if (Object.keys(errors).length > 0) {
++      setValidationErrors(errors);
++      return;
++    }
++    try {
++      await onSubmit({
++        ...formData,
++        name: formData.name.trim(),
++        subject: formData.subject?.trim(),
++        body: formData.body.trim(),
++      });
++    } catch (e) {
++      // onSubmit error handled by parent via error prop
++    }
++  }
++
++  return (
++    <div role="dialog" aria-modal="true" aria-labelledby="form-title" tabIndex={-1}>
++      <h2 id="form-title">{initialData ? "Edit Template" : "Create Template"}</h2>
++      <form onSubmit={handleSubmit} noValidate>
++        <div>
++          <label htmlFor="name">Name *</label>
++          <input
++            id="name"
++            type="text"
++            value={formData.name}
++            onChange={(e) => handleChange("name", e.target.value)}
++            aria-invalid={!!validationErrors.name}
++            aria-describedby={validationErrors.name ? "name-error" : undefined}
++            required
++          />
++          {validationErrors.name && (
++            <span id="name-error" role="alert" style={{ color: "red" }}>
++              {validationErrors.name}
++            </span>
++          )}
++        </div>
++
++        <div>
++          <label htmlFor="channel">Channel *</label>
++          <select
++            id="channel"
++            value={formData.channel}
++            onChange={(e) => handleChange("channel", e.target.value as any)}
++            aria-invalid={!!validationErrors.channel}
++            aria-describedby={validationErrors.channel ? "channel-error" : undefined}
++            required
++          >
++            <option value="email">Email</option>
++            <option value="sms">SMS</option>
++            <option value="push">Push</option>
++          </select>
++          {validationErrors.channel && (
++            <span id="channel-error" role="alert" style={{ color: "red" }}>
++              {validationErrors.channel}
++            </span>
++          )}
++        </div>
++
++        <div>
++          <label htmlFor="subject">
++            Subject {formData.channel === "email" ? "*" : "(optional)"}
++          </label>
++          <input
++            id="subject"
++            type="text"
++            value={formData.subject ?? ""}
++            onChange={(e) => handleChange("subject", e.target.value)}
++            aria-invalid={!!validationErrors.subject}
++            aria-describedby={validationErrors.subject ? "subject-error" : undefined}
++            required={formData.channel === "email"}
++          />
++          {validationErrors.subject && (
++            <span id="subject-error" role="alert" style={{ color: "red" }}>
++              {validationErrors.subject}
++            </span>
++          )}
++        </div>
++
++        <div>
++          <label htmlFor="body">Body *</label>
++          <textarea
++            id="body"
++            value={formData.body}
++            onChange={(e) => handleChange("body", e.target.value)}
++            aria-invalid={!!validationErrors.body}
++            aria-describedby={validationErrors.body ? "body-error" : undefined}
++            required
++          />
++          {validationErrors.body && (
++            <span id="body-error" role="alert" style={{ color: "red" }}>
++              {validationErrors.body}
++            </span>
++          )}
++        </div>
++
++        <div>
++          <label htmlFor="status">Status *</label>
++          <select
++            id="status"
++            value={formData.status}
++            onChange={(e) => handleChange("status", e.target.value as any)}
++            aria-invalid={!!validationErrors.status}
++            aria-describedby={validationErrors.status ? "status-error" : undefined}
++            required
++          >
++            <option value="active">Active</option>
++            <option value="inactive">Inactive</option>
++          </select>
++          {validationErrors.status && (
++            <span id="status-error" role="alert" style={{ color: "red" }}>
++              {validationErrors.status}
++            </span>
++          )}
++        </div>
++
++        {error && (
++          <div role="alert" style={{ color: "red" }}>
++            {error}
++          </div>
++        )}
++
++        <button type="submit" disabled={submitting}>
++          {submitting ? "Saving..." : "Save"}
++        </button>
++        <button type="button" onClick={onCancel} disabled={submitting}>
++          Cancel
++        </button>
++      </form>
++    </div>
++  );
++}
++
+diff --git a/src/components/DeactivateTemplateButton.tsx b/src/components/DeactivateTemplateButton.tsx
+new file mode 100644
+index 0000000..aaaaaaa
+--- /dev/null
++++ b/src/components/DeactivateTemplateButton.tsx
+@@ -0,0 +1,55 @@
++import React, { useState } from "react";
++
++type Props = {
++  templateId: string;
++  onDeactivate(): Promise<void>;
++  disabled?: boolean;
++};
++
++export function DeactivateTemplateButton({
++  templateId,
++  onDeactivate,
++  disabled,
++}: Props) {
++  const [confirmOpen, setConfirmOpen] = useState(false);
++  const [loading, setLoading] = useState(false);
++
++  async function handleConfirm() {
++    setLoading(true);
++    try {
++      await onDeactivate();
++    } finally {
++      setLoading(false);
++      setConfirmOpen(false);
++    }
++  }
++
++  return (
++    <>
++      <button
++        onClick={() => setConfirmOpen(true)}
++        disabled={disabled || loading}
++        aria-haspopup="dialog"
++        aria-expanded={confirmOpen}
++        aria-controls={`confirm-deactivate-${templateId}`}
++      >
++        Deactivate
++      </button>
++      {confirmOpen && (
++        <div
++          role="dialog"
++          id={`confirm-deactivate-${templateId}`}
++          aria-modal="true"
++          aria-labelledby={`confirm-title-${templateId}`}
++          tabIndex={-1}
++        >
++          <h2 id={`confirm-title-${templateId}`}>Confirm Deactivation</h2>
++          <p>Are you sure you want to deactivate this template?</p>
++          <button onClick={handleConfirm} disabled={loading}>
++            Yes, Deactivate
++          </button>
++          <button onClick={() => setConfirmOpen(false)} disabled={loading}>
++            Cancel
++          </button>
++        </div>
++      )}
++    </>
++  );
++}
++
+diff --git a/src/components/LoadingIndicator.tsx b/src/components/LoadingIndicator.tsx
+new file mode 100644
+index 0000000..bbbbbbb
+--- /dev/null
++++ b/src/components/LoadingIndicator.tsx
+@@ -0,0 +1,15 @@
++import React from "react";
++
++type Props = {
++  message?: string;
++};
++
++export function LoadingIndicator({ message = "Loading..." }: Props) {
++  return (
++    <div role="status" aria-live="polite" aria-busy="true">
++      <span className="spinner" aria-hidden="true" /> {message}
++    </div>
++  );
++}
++
+diff --git a/src/components/ErrorMessage.tsx b/src/components/ErrorMessage.tsx
+new file mode 100644
+index 0000000..ccccccc
+--- /dev/null
++++ b/src/components/ErrorMessage.tsx
+@@ -0,0 +1,15 @@
++import React from "react";
++
++type Props = {
++  message: string;
++};
++
++export function ErrorMessage({ message }: Props) {
++  return (
++    <div role="alert" style={{ color: "red" }}>
++      {message}
++    </div>
++  );
++}
++
