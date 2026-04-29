@@ -1,0 +1,63 @@
+{
+  "profile": "auto",
+  "repoDir": ".",
+  "absolutePath": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+  "startedAt": "2026-04-29T07:48:04.582Z",
+  "completedAt": "2026-04-29T07:48:04.584Z",
+  "status": "skipped",
+  "commands": [
+    {
+      "name": "npm run typecheck",
+      "command": "npm",
+      "args": [
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+      "status": "skipped",
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": "",
+      "skipReason": "package.json does not define a \"typecheck\" script."
+    },
+    {
+      "name": "npm run lint",
+      "command": "npm",
+      "args": [
+        "run",
+        "lint"
+      ],
+      "cwd": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+      "status": "skipped",
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": "",
+      "skipReason": "package.json does not define a \"lint\" script."
+    },
+    {
+      "name": "npm run test",
+      "command": "npm",
+      "args": [
+        "run",
+        "test"
+      ],
+      "cwd": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+      "status": "skipped",
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": "",
+      "skipReason": "package.json does not define a \"test\" script."
+    },
+    {
+      "name": "dotnet validation discovery",
+      "command": "dotnet",
+      "args": [],
+      "cwd": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+      "status": "skipped",
+      "durationMs": 0,
+      "stdout": "",
+      "stderr": "",
+      "skipReason": "No .sln or .csproj file found."
+    }
+  ]
+}
