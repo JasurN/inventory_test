@@ -1,0 +1,156 @@
+{
+  "runId": "src-examples-jira-ticket-txt-20260429T081343Z",
+  "threadId": "src-examples-jira-ticket-txt-20260429T081343Z",
+  "startedAt": "2026-04-29T08:13:43.339Z",
+  "completedAt": "2026-04-29T08:16:56.669Z",
+  "source": {
+    "type": "file",
+    "id": "src/examples/jira-ticket.txt"
+  },
+  "projectContext": null,
+  "retrievedRepoContext": {
+    "directory": ".",
+    "absolutePath": "/Users/jasurbek_nabijonov/WebstormProjects/experiments/ai-sdlc-agent-prototype",
+    "retrievalMode": "keyword",
+    "files": [
+      {
+        "path": "src/examples/jira-ticket.txt",
+        "score": 59
+      },
+      {
+        "path": "README.md",
+        "score": 47
+      },
+      {
+        "path": "templates/react-ui-template.md",
+        "score": 34
+      },
+      {
+        "path": "src/integrations/jira-client.ts",
+        "score": 33
+      },
+      {
+        "path": "PATH.md",
+        "score": 28
+      },
+      {
+        "path": "src/agents/code-patch-agent.ts",
+        "score": 27
+      },
+      {
+        "path": "templates/node-api-template.md",
+        "score": 26
+      },
+      {
+        "path": "templates/test-plan-template.md",
+        "score": 25
+      }
+    ],
+    "queryTerms": [
+      "admin",
+      "user",
+      "want",
+      "manage",
+      "notification",
+      "templates",
+      "that",
+      "can",
+      "create",
+      "edit",
+      "activate",
+      "and",
+      "deactivate",
+      "used",
+      "for",
+      "customer",
+      "notifications",
+      "acceptance",
+      "criteria",
+      "view",
+      "list",
+      "template",
+      "with",
+      "name",
+      "channel",
+      "subject",
+      "body",
+      "status",
+      "existing",
+      "required",
+      "fields",
+      "must",
+      "validated",
+      "email",
+      "only",
+      "active",
+      "sending",
+      "management",
+      "allows",
+      "users",
+      "views",
+      "creates",
+      "new",
+      "edits",
+      "deactivates",
+      "all",
+      "provided",
+      "when",
+      "creating",
+      "editing"
+    ],
+    "truncated": false
+  },
+  "approvalsEnabled": false,
+  "validation": {
+    "enabled": true,
+    "profile": "auto",
+    "status": "skipped",
+    "commands": [
+      {
+        "name": "npm run typecheck",
+        "status": "skipped",
+        "durationMs": 0,
+        "skipReason": "package.json does not define a \"typecheck\" script."
+      },
+      {
+        "name": "npm run lint",
+        "status": "skipped",
+        "durationMs": 0,
+        "skipReason": "package.json does not define a \"lint\" script."
+      },
+      {
+        "name": "npm run test",
+        "status": "skipped",
+        "durationMs": 0,
+        "skipReason": "package.json does not define a \"test\" script."
+      },
+      {
+        "name": "dotnet validation discovery",
+        "status": "skipped",
+        "durationMs": 0,
+        "skipReason": "No .sln or .csproj file found."
+      }
+    ]
+  },
+  "patchGeneration": {
+    "enabled": true,
+    "artifacts": [
+      "patches/patch-summary.md",
+      "patches/changes.patch"
+    ]
+  },
+  "artifacts": [
+    "ticket.md",
+    "retrieved-context.md",
+    "requirements.json",
+    "ui-plan.md",
+    "api-plan.md",
+    "tests.md",
+    "validation-results.json",
+    "validation.md",
+    "review.md",
+    "patches/patch-summary.md",
+    "patches/changes.patch",
+    "run-summary.json"
+  ]
+}
