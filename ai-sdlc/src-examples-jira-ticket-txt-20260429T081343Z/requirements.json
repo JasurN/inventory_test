@@ -1,0 +1,80 @@
+{
+  "featureName": "Notification Template Management",
+  "summary": "Allows admin users to create, edit, activate, deactivate, and view notification templates used for customer notifications.",
+  "actors": [
+    "Admin user"
+  ],
+  "entities": [
+    {
+      "name": "NotificationTemplate",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "type": "string",
+          "required": true,
+          "values": [
+            "email",
+            "sms",
+            "push"
+          ]
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "body",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "values": [
+            "active",
+            "inactive"
+          ]
+        }
+      ]
+    }
+  ],
+  "useCases": [
+    "Admin views a list of notification templates",
+    "Admin creates a new notification template with name, channel, subject, body, and status",
+    "Admin edits an existing notification template",
+    "Admin deactivates a notification template"
+  ],
+  "validations": [
+    "All required fields must be provided when creating or editing a template",
+    "Subject field is required if the channel is email",
+    "Only active templates can be used for sending notifications"
+  ],
+  "businessRules": [
+    "Only active templates are eligible for sending notifications",
+    "Deactivated templates cannot be used for sending notifications"
+  ],
+  "apiEndpoints": [
+    "GET /notification-templates - Retrieve list of templates",
+    "POST /notification-templates - Create a new template",
+    "PUT /notification-templates/{id} - Update an existing template",
+    "PATCH /notification-templates/{id}/deactivate - Deactivate a template"
+  ],
+  "uiComponents": [
+    "Notification Templates List View",
+    "Notification Template Create/Edit Form",
+    "Deactivate Template Action Button"
+  ],
+  "openQuestions": [
+    "What are the allowed values for the channel field beyond email? Are SMS and push notifications supported?",
+    "Should there be an activate endpoint or is activation done via create/edit with status field?",
+    "Is there a maximum length or format requirement for subject and body fields?",
+    "Should templates have versioning or audit history?"
+  ]
+}
