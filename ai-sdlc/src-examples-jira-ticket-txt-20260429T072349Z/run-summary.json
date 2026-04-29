@@ -1,0 +1,22 @@
+{
+  "runId": "src-examples-jira-ticket-txt-20260429T072349Z",
+  "threadId": "src-examples-jira-ticket-txt-20260429T072349Z",
+  "startedAt": "2026-04-29T07:23:49.033Z",
+  "completedAt": "2026-04-29T07:26:38.933Z",
+  "source": {
+    "type": "file",
+    "id": "src/examples/jira-ticket.txt"
+  },
+  "projectContext": null,
+  "retrievedRepoContext": null,
+  "approvalsEnabled": false,
+  "artifacts": [
+    "ticket.md",
+    "requirements.json",
+    "ui-plan.md",
+    "api-plan.md",
+    "tests.md",
+    "review.md",
+    "run-summary.json"
+  ]
+}
